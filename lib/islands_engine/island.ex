@@ -1,0 +1,53 @@
+defmodule IslandsEngine.Island do
+  alias __MODULE__
+  alias IslandsEngine.Coordinate
+  @enforce_keys [:coordinates, :hit_coordinates]
+  defstruct [:coordinates, :hit_coordinates]
+
+  def new(type, %Coordinate{} = topLeft) do
+    with [_|_] = offsets <- offsets(type), %MapSet{} = coordinates <- add_coordinates(offsets,topLeft) do
+      {:ok, %Island{coordinates: coordinates, hit_coordinates: MapSet.new()}}
+
+    else
+      error -> error
+    end
+  end
+
+
+
+  defp offsets(:square) do
+    [{0,0},{0,1},{1,0},{1,1}]
+  end
+
+  defp offsets(:attol) do
+    [{0, 0}, {0, 1}, {1, 1}, {2, 0}, {2, 1}]
+  end
+
+  defp offset(:dot) do
+    [{0, 0}]
+  end
+
+  defp offsets(:l_shape) do
+    [{0, 0}, {0, 1}, {0, 2}, {1, 0}]
+  end
+
+  defp offsets(_) do
+    {:error, "Invalid island type"}
+  end
+
+  defp add_coordinates(offsets, upper_left) do
+    Enum.reduce_while(offsets, MapSet.new(), fn offset, acc ->
+    add_coordinate(acc, upper_left, offset)
+    end)
+  end
+
+  defp add_coordinate(coordinates, %Coordinate{row: row, column: col},
+    {row_offset, col_offset}) do
+    case Coordinate.new(row + row_offset, col + col_offset) do
+      {:ok, coordinate} ->
+      {:cont, MapSet.put(coordinates, coordinate)}
+      {:error, :invalid_coordinate} ->
+      {:halt, {:error, :invalid_coordinate}}
+    end
+  end
+end
